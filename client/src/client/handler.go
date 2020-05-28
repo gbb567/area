@@ -28,15 +28,15 @@ func (c Client) Nat() {
 		fmt.Println(err1)
 		return
 	}
-	con, err2 := net.DialUDP("udp", nil, addr)
+	udpAddr, _ := net.ResolveUDPAddr("udp4", "127.0.0.1:10010")
+	con, err2 := net.ListenUDP("udp", udpAddr)
 	if err2 != nil {
 		fmt.Println(err2)
 		return
 	}
-	con.Write(hello)
+	con.WriteToUDP(hello, addr)
 	buf := make([]byte, 1)
-	fmt.Println(111)
-	con.Read(buf)
+	con.ReadFromUDP(buf)
 	fmt.Print("nat")
 	fmt.Println(string(buf))
 }

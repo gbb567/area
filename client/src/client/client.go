@@ -30,7 +30,7 @@ func (client Client) Read() []byte {
 }
 
 func connect(client *Client) {
-	conn, err := net.Dial("tcp", "49.233.15.147:4040")
+	conn, err := net.Dial("tcp", "127.0.0.1:4040")
 	if err != nil {
 		fmt.Print("err")
 		panic(err)

@@ -28,7 +28,7 @@ type ServerConfig struct {
 
 func NewServer(protocol string, port string) *Server {
 	var server Server
-	udpC := udpConfig{network: "udp4", addr: "49.233.15.147:9998", protocol: "udp", sbs: []byte("udp4\\49.233.15.147:9998")}
+	udpC := udpConfig{network: "udp4", addr: "127.0.0.1:9998", protocol: "udp", sbs: []byte("udp4\\127.0.0.1:9998")}
 	server = ServerConfig{Protocol: protocol, Port: port, ICatalog: NewCatalog(), codec: NewCodecer(), handler: NewHandler(), udpConfig: udpC}
 	return &server
 }
@@ -66,7 +66,6 @@ func handleUdp(sc ServerConfig, conn *net.UDPConn) {
 			fmt.Println("error udp read")
 			return
 		}
-		conn.WriteToUDP([]byte("3"), udpAddr)
 		go natHandle(sc, udpAddr)
 	}
 }
