@@ -35,8 +35,27 @@ func (c Client) Nat() {
 		return
 	}
 	con.WriteToUDP(hello, addr)
+	//check Port Restricted Cone
+	if printNat(con, addr) == "3" {
+		fmt.Println("nat3")
+		//check Restricted Cone
+		if printNat(con, addr) == "2" {
+			fmt.Println("nat2")
+			//check Full Cone,need two public ips
+			//printNat(con, addr)
+		}
+	} else {
+		//check Symmetric
+		fmt.Println("nat4")
+	}
+}
+
+func printNat(con *net.UDPConn, addr *net.UDPAddr) string {
 	buf := make([]byte, 1)
-	con.ReadFromUDP(buf)
-	fmt.Print("nat")
-	fmt.Println(string(buf))
+	_, _, err := con.ReadFromUDP(buf)
+	if err != nil {
+		fmt.Println(err)
+		return "0"
+	}
+	return string(buf)
 }

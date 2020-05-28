@@ -66,7 +66,7 @@ func handleUdp(sc ServerConfig, conn *net.UDPConn) {
 			fmt.Println("error udp read")
 			return
 		}
-		go natHandle(sc, udpAddr)
+		go natHandle(sc, conn, udpAddr)
 	}
 }
 

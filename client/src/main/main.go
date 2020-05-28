@@ -3,7 +3,6 @@ package main
 import (
 	"client"
 	"fmt"
-	"time"
 )
 
 func main() {
@@ -18,5 +17,4 @@ func main() {
 	c := client.NewClient()
 	c.List()
 	c.Nat()
-	time.Sleep(10 * time.Second)
 }
