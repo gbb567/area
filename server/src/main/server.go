@@ -1,90 +1,72 @@
 package main
 
 import (
+	"container/list"
 	"fmt"
 	"net"
+	"time"
 )
 
-var connectError = []byte("connection was existing")
-
-type Server interface {
-	Bind()
-}
+var beat = []byte("beat")
+var dur = 2 * time.Second
 
 type udpConfig struct {
 	network  string
 	addr     string
 	protocol string
-	sbs      []byte
 }
-type ServerConfig struct {
-	Protocol  string
-	Port      string
-	ICatalog  *ICatalog
-	codec     ICodec
-	handler   MapHandler
+type Server struct {
 	udpConfig udpConfig
+	dict      ICatalog
+	udpConn   *net.UDPConn
 }
 
-func NewServer(protocol string, port string) *Server {
+func NewServer() *Server {
 	var server Server
-	udpC := udpConfig{network: "udp4", addr: "127.0.0.1:9998", protocol: "udp", sbs: []byte("udp4\\127.0.0.1:9998")}
-	server = ServerConfig{Protocol: protocol, Port: port, ICatalog: NewCatalog(), codec: NewCodecer(), handler: NewHandler(), udpConfig: udpC}
+	udpC := udpConfig{network: "udp4", addr: "127.0.0.1:9998", protocol: "udp"}
+	server = Server{udpConfig: udpC, dict: NewCatalog()}
 	return &server
 }
 
-func (sc ServerConfig) Bind() {
-	ln, err := net.Listen(sc.Protocol, ":"+sc.Port)
-	if err != nil {
-		panic(err)
-	}
-	udpAddr, _ := net.ResolveUDPAddr(sc.udpConfig.network, sc.udpConfig.addr)
-	udpConn, err2 := net.ListenUDP(sc.udpConfig.protocol, udpAddr)
+func (sr *Server) Bind() {
+	udpAddr, _ := net.ResolveUDPAddr(sr.udpConfig.network, sr.udpConfig.addr)
+	udpConn, err2 := net.ListenUDP(sr.udpConfig.protocol, udpAddr)
 	if err2 != nil {
 		panic(err2)
 	}
-	go handleUdp(sc, udpConn)
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			fmt.Print("server accept error")
-			continue
-		}
-		go handleConnection(sc, &conn)
+	(*sr).udpConn = udpConn
+	go makeTimer(udpConn, *sr)
+	handleUdp(*sr)
+}
+
+func (sr Server) Read(bs []byte) (int, *net.UDPAddr, error) {
+	return sr.udpConn.ReadFromUDP(bs)
+}
+
+func (sr Server) Write(bs []byte, addr *net.UDPAddr) {
+	_, err := sr.udpConn.WriteToUDP(bs, addr)
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
-func handleUdp(sc ServerConfig, conn *net.UDPConn) {
-	buf := make([]byte, 5)
+func makeTimer(udpConn *net.UDPConn, sr Server) {
+	tiker := time.NewTicker(dur)
 	for {
-		len, udpAddr, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			fmt.Println(err)
-			return
+		select {
+		case <-tiker.C:
+			var j *list.Element
+			now := time.Now()
+			for i := sr.dict.List().Front(); i != nil; {
+				j = i.Next()
+				wrap := i.Value.(*UDPAddrWrap)
+				if now.Sub(i.Value.(*UDPAddrWrap).time) > dur {
+					sr.dict.Remove(wrap.addr)
+				} else {
+					udpConn.WriteToUDP(beat, i.Value.(*UDPAddrWrap).addr)
+				}
+				i = j
+			}
 		}
-		if len != 5 && string(buf) != "hello" {
-			fmt.Println("error udp read")
-			return
-		}
-		go natHandle(sc, conn, udpAddr)
-	}
-}
-
-func handleConnection(sc ServerConfig, conn *net.Conn) {
-	if !(*sc.ICatalog).Append(conn) {
-		sc.codec.encode(connectError, *conn)
-		fmt.Println("connect error,this connection was existing")
-		(*conn).Close()
-		return
-	}
-	for {
-		bs := sc.codec.decode(*conn)
-		if bs == nil {
-			fmt.Println("close this connection")
-			(*sc.ICatalog).Remove(conn)
-			(*conn).Close()
-			return
-		}
-		sc.handler.handle(bs, sc, *conn)
 	}
 }

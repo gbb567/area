@@ -10,5 +10,5 @@ func main() {
 			fmt.Println(err)
 		}
 	}()
-	(*NewServer("tcp", "4040")).Bind()
+	(*NewServer()).Bind()
 }
