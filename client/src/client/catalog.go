@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"bytes"
@@ -20,53 +20,14 @@ type UDPAddrWrap struct {
 	time time.Time
 }
 
-type CatalogHandler struct {
-	Handler
-}
-
-type ICatalog interface {
-	List() *list.List
-	Update(addr *net.UDPAddr)
-	Remove(addr *net.UDPAddr)
-	append(addr *net.UDPAddr) bool
-	get(string) *net.UDPAddr
-	notify(int64, int, *net.UDPConn, string, string)
-}
-
+type CatalogHandler struct{}
 type Catalog struct {
 	list *list.List
 	dict map[string]*list.Element
 }
 
-func init() {
-	ch := CatalogHandler{}
-	ch.index = 1
-	var ih IHandler = ch
-	registerMap(&ih)
-}
-
-func (h CatalogHandler) doHandle(sr Server, addr *net.UDPAddr, no int64, bs []byte) {
-	if bs == nil {
-		return
-	}
-	key := string(bs)
-	if key == "add" {
-		if sr.dict.append(addr) {
-			sr.Write(no, ok, addr)
-		} else {
-			sr.Write(no, fail, addr)
-		}
-	} else if key == "list" {
-		sr.Write(no, listToByte(sr.dict.List()), addr)
-	} else if key == "remove" {
-		sr.dict.Remove(addr)
-	}
-}
-
-func NewCatalog() ICatalog {
-	var ic ICatalog
-	ic = Catalog{list: list.New(), dict: make(map[string]*list.Element)}
-	return ic
+func NewCatalog() *Catalog {
+	return &Catalog{list: list.New(), dict: make(map[string]*list.Element)}
 }
 
 func listToByte(ls *list.List) []byte {
@@ -88,11 +49,11 @@ func listToByte(ls *list.List) []byte {
 	return bs.Bytes()
 }
 
-func (cl Catalog) List() *list.List {
+func (cl *Catalog) List() *list.List {
 	return cl.list
 }
 
-func (cl Catalog) Update(addr *net.UDPAddr) {
+func (cl *Catalog) Update(addr *net.UDPAddr) {
 	key := getKey(addr)
 	ele := cl.dict[key]
 	if ele != nil {
@@ -100,7 +61,7 @@ func (cl Catalog) Update(addr *net.UDPAddr) {
 	}
 }
 
-func (cl Catalog) Remove(addr *net.UDPAddr) {
+func (cl *Catalog) Remove(addr *net.UDPAddr) {
 	removeLock.Lock()
 	defer removeLock.Unlock()
 	key := getKey(addr)
@@ -110,7 +71,7 @@ func (cl Catalog) Remove(addr *net.UDPAddr) {
 	}
 }
 
-func (cl Catalog) append(addr *net.UDPAddr) bool {
+func (cl *Catalog) append(addr *net.UDPAddr) bool {
 	appendLock.Lock()
 	defer appendLock.Unlock()
 	key := getKey(addr)
@@ -121,15 +82,7 @@ func (cl Catalog) append(addr *net.UDPAddr) bool {
 	return true
 }
 
-func (cl Catalog) notify(no int64, ins int, udpConn *net.UDPConn, ipAndPort string, value string) {
-	ele, ok := cl.dict[ipAndPort]
-	if !ok {
-		return
-	}
-	udpConn.WriteToUDP(encode(no, resp(ins, []byte(value))), ele.Value.(*UDPAddrWrap).addr)
-}
-
-func (cl Catalog) get(key string) *net.UDPAddr {
+func (cl *Catalog) Get(key string) *net.UDPAddr {
 	ele := cl.dict[key]
 	if ele == nil {
 		return nil

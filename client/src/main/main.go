@@ -4,6 +4,7 @@ import (
 	"client"
 	"fmt"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -16,8 +17,7 @@ func main() {
 		}
 	}()
 	c := client.NewClient()
-	if c.Add() {
-		fmt.Println("add")
+	if c.IsLive() {
 		c.Nat()
 		str := c.List()
 		fmt.Println(str)
@@ -25,11 +25,12 @@ func main() {
 		if len(strs) > 1 {
 			fmt.Println("link")
 			c.Link(strs[0])
-			c.Wait()
-		} else {
-			c.Wait()
+			c.Send(strs[0], []byte("阿鲁巴"))
+			time.Sleep(2 * time.Second)
+			c.Send(strs[0], []byte("阿鲁巴"))
 		}
+		time.Sleep(20 * time.Second)
 	} else {
-		fmt.Println("no add")
+		fmt.Println("client error")
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 )
 
@@ -15,12 +16,18 @@ func init() {
 	registerMap(&ih)
 }
 
-func (h LinkHandler) doHandle(sr Server, addr *net.UDPAddr, bs []byte) {
+func (h LinkHandler) doHandle(sr Server, addr *net.UDPAddr, no int64, bs []byte) {
 	if bs == nil {
 		return
 	}
 	key := string(bs[0:4])
 	if key == "link" {
-		sr.dict.notify(sr.udpConn, string(bs[4:]), addr.String())
+		ipAndPort := string(bs[4:])
+		dist := addr.String()
+		if ipAndPort == dist {
+			fmt.Println("link source target same")
+		} else {
+			sr.dict.notify(no, h.index, sr.udpConn, string(bs[4:]), addr.String())
+		}
 	}
 }

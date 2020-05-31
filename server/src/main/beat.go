@@ -15,6 +15,7 @@ func init() {
 	registerMap(&ih)
 }
 
-func (h BeatHandler) doHandle(sr Server, addr *net.UDPAddr, bs []byte) {
+func (h BeatHandler) doHandle(sr Server, addr *net.UDPAddr, no int64, bs []byte) {
 	sr.dict.Update(addr)
+	sr.Write(0, empty, addr)
 }

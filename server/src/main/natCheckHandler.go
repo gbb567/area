@@ -19,7 +19,7 @@ func init() {
 	registerMap(&ih)
 }
 
-func (h NatHandler) doHandle(sr Server, addr *net.UDPAddr, bs []byte) {
+func (h NatHandler) doHandle(sr Server, addr *net.UDPAddr, no int64, bs []byte) {
 	if bs == nil {
 		return
 	}
@@ -31,7 +31,7 @@ func (h NatHandler) doHandle(sr Server, addr *net.UDPAddr, bs []byte) {
 			fmt.Println(err2)
 			return
 		}
-		con.Write(b2)
+		con.Write(encode(no, b2))
 		//check Full Cone,need two public ip
 	}
 }
